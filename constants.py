@@ -13,5 +13,6 @@ HELP = {'base': """Небольшое объяснение:
         'edit_timer': '/edit_timer <имя таймера> <необязательно новое имя> <новое время> - редактировать таймер с '
                       'указанным именем: изменение имени таймера (необязательно) и изменение времени (как с timer)'
         }
-MARKUPS = {'base': [['/help', '/timer']], 'timer': [['/help timer', '/set_timer', '/add_timer', '/edit_timer',
-                                                     '/delete_timer', '/back'], []]}
+MARKUPS = {'base': [['/help', '/timer']],
+           'timer': [['/help timer', '/set_timer', '/add_timer'], ['/edit_timer', '/delete_timer', '/back']]
+           }
