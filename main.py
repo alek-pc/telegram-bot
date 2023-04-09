@@ -47,7 +47,7 @@ async def start(update, context):
 
 
 async def text(update, context):
-    if context.user_data['mode'] == 'timer':
+    if 'mode' not in list(context.user_data.keys()) or context.user_data['mode'] == 'timer':
         db_sess = create_session()
         timer = db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id,
                                             Timer.name == update.message.text).first()
@@ -62,10 +62,13 @@ async def text(update, context):
 
 
 async def back(update, context):
-    if context.user_data['mode'] == 'timer':
+    if 'mode' not in list(context.user_data.keys()) or context.user_data['mode'] == 'timer':
         context.user_data['mode'] = 'base'
         markup = ReplyKeyboardMarkup(MARKUPS['base'], one_time_keyboard=False)
         await update.message.reply_text('Вернулись', reply_markup=markup)
+
+
+
 
 
 def main():
@@ -74,10 +77,9 @@ def main():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help))
 
-    application.add_handler(CommandHandler('timer', timers))
+    application.add_handler(CommandHandler('timers', timers))
 
     application.add_handler(CommandHandler('set_timer', set_timer))
-    application.add_handler(CommandHandler('delete_timer', delete_timer))
     application.add_handler(CommandHandler('back', back))
 
     application.add_handler(ConversationHandler(entry_points=[CommandHandler('edit_timer', edit_timer)], states={
@@ -89,6 +91,10 @@ def main():
         'get name': [MessageHandler(filters.TEXT & ~filters.COMMAND, get_add_timer_name)],
         'get time': [MessageHandler(filters.TEXT & ~filters.COMMAND, get_add_timer_time)]
     }, fallbacks=[CommandHandler('stop', stop)]))
+    application.add_handler(ConversationHandler(entry_points=[CommandHandler('delete_timer', delete_timer)], states={
+                                                    'get name': [MessageHandler(filters.TEXT & ~filters.COMMAND,
+                                                                                get_delete_timer_name)]
+                                                }, fallbacks=[CommandHandler('stop', stop)]))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text))
 

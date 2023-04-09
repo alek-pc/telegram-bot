@@ -61,7 +61,7 @@ async def new_timer_name(update, context):
 
 
 async def get_edit_timer_time(update, context):
-    if any([i not in '123456789 ' for i in update.message.text]) or len(update.message.text.split()) > 4:
+    if any([i not in '1234567890 ' for i in update.message.text]) or len(update.message.text.split()) > 4:
         await update.message.reply_text('Некорректное время, введите время ещё раз')
         return 'get time'
     db_sess = create_session()
@@ -69,7 +69,7 @@ async def get_edit_timer_time(update, context):
                                         Timer.user_id == update.effective_user.id).first()
 
     time = {0: 0, 1: 0, 2: 0, 3: 0}  # время: 0 - сек, 1 - мин, 2 - ч, 3 - дни
-    for ind, el in enumerate(update.message.text.split()):
+    for ind, el in enumerate(update.message.text.split()[::-1]):
         time[ind] = int(el)
     timer.seconds = time[0]
     timer.minutes = time[1]
@@ -102,12 +102,12 @@ async def get_add_timer_name(update, context):
 
 
 async def get_add_timer_time(update, context):
-    if any([i not in '123456789 ' for i in update.message.text]) or len(update.message.text.split()) > 4:
+    if any([i not in '1234567890 ' for i in update.message.text]) or len(update.message.text.split()) > 4:
         await update.message.reply_text('Некорректное время, введите время ещё раз')
         return 'get time'
     db_sess = create_session()
     time = {0: 0, 1: 0, 2: 0, 3: 0}  # время: 0 - сек, 1 - мин, 2 - ч, 3 - дни
-    for ind, el in enumerate(update.message.text.split()):
+    for ind, el in enumerate(update.message.text.split()[::-1]):
         time[ind] = int(el)
     timer = Timer(name=context.user_data['add timer conv'], seconds=time[0], minutes=time[1], hours=time[2],
                   days=time[3], user_id=update.effective_user.id)
@@ -121,22 +121,27 @@ async def get_add_timer_time(update, context):
 
 async def delete_timer(update, context):
     db_sess = create_session()
+    user_timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
+    markup = ReplyKeyboardMarkup([user_timers], one_time_keyboard=False)
+    await update.message.reply_text(f'Выберите таймер на клавиатуре, который хотите удалить', reply_markup=markup)
+    return 'get name'
 
-    if not context.args:
-        await update.message.reply_text(f'Какой таймер удалять?! Укажите имя таймера! Читайте {HELP["delete_timer"]}')
-        return
-    timer = db_sess.query(Timer).filter(Timer.name == context.args[0],
-                                        Timer.user_id == update.effective_user.id).first()
+
+async def get_delete_timer_name(update, context):
+    db_sess = create_session()
+    timer = db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id,
+                                        Timer.name == update.message.text).first()
     if not timer:
-        await update.message.reply_text(f'Таймера {context.args[0]} не существует')
-        return
-
+        await update.message.reply_text(f'Таймера {update.message.text} не существует. Выберите таймер на клавиатуре '
+                                        f'или выйдите /stop')
+        return 'get name'
     db_sess.delete(timer)
     db_sess.commit()
 
     user_timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
     markup = ReplyKeyboardMarkup([*MARKUPS['timer'], user_timers], one_time_keyboard=False)
-    await update.message.reply_text(f'Таймер {context.args[0]} удален', reply_markup=markup)
+    await update.message.reply_text(f'Таймер {update.message.text} удален', reply_markup=markup)
+    return ConversationHandler.END
 
 
 async def set_timer(update, context):
