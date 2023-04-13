@@ -11,23 +11,31 @@ async def task(context):
 
 
 async def timers(update, context):
-    context.user_data['mode'] = 'timer'  # режим - таймер, для определения именнованного таймера
+    context.user_data['mode'] = 'timers'  # режим - таймер, для определения именнованного таймера
     db_sess = create_session()
     # получаем все пользовательские таймеры для этого пользователя
-    user_timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
-    # выводим их на клавиатуру
-    markup = ReplyKeyboardMarkup([*MARKUPS['timer'], user_timers], one_time_keyboard=False)
+    timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
+    user_timers = [timers[timer: timer + 4] for timer in range(0, len(timers), 4)]
+    markup = ReplyKeyboardMarkup([*MARKUPS['timers'], *user_timers], one_time_keyboard=False)
     await update.message.reply_text('Таймеры можно выбрать уже готовый таймер или поставить собственный /set_timer',
                                     reply_markup=markup)
 
 
 async def stop(update, context):
-    await update.message.reply_text('Вышли')
+    db_sess = create_session()
+    timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
+    user_timers = [timers[timer: timer + 4] for timer in range(0, len(timers), 4)]
+    markup = ReplyKeyboardMarkup([*MARKUPS['timers'], *user_timers], one_time_keyboard=False)
+    await update.message.reply_text('Вышли', reply_markup=markup)
     return ConversationHandler.END
 
 
 async def edit_timer(update, context):
-    await update.message.reply_text('Какой таймер будем редактировать? Введите имя')
+    db_sess = create_session()
+    timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
+    user_timers = [timers[timer: timer + 4] for timer in range(0, len(timers), 4)]
+    markup = ReplyKeyboardMarkup([*user_timers, ['/stop']])
+    await update.message.reply_text('Какой таймер будем редактировать? Введите имя', reply_markup=markup)
     return 'get name'
 
 
@@ -40,7 +48,7 @@ async def get_edit_timer_name(update, context):
         return 'get name'
     context.user_data['edit timer conv'] = update.message.text
     await update.message.reply_text('Введите новое имя таймера (если нет, то "нет")',
-                                    reply_markup=ReplyKeyboardMarkup([['нет']], one_time_keyboard=True))
+                                    reply_markup=ReplyKeyboardMarkup([['нет'], ['/stop']], one_time_keyboard=True))
     return 'new name'
 
 
@@ -54,6 +62,7 @@ async def new_timer_name(update, context):
             await update.message.reply_text('Это имя уже используется, выберите другое или напишите "нет"')
             return 'new name'
         timer.name = update.message.text
+        db_sess.commit()
         context.user_data['edit timer conv'] = timer.name
 
     await update.message.reply_text('Теперь введите новое время для таймера')
@@ -61,32 +70,36 @@ async def new_timer_name(update, context):
 
 
 async def get_edit_timer_time(update, context):
-    if any([i not in '1234567890 ' for i in update.message.text]) or len(update.message.text.split()) > 4:
-        await update.message.reply_text('Некорректное время, введите время ещё раз')
-        return 'get time'
     db_sess = create_session()
     timer = db_sess.query(Timer).filter(Timer.name == context.user_data['edit timer conv'],
                                         Timer.user_id == update.effective_user.id).first()
+    if update.message.text.lower() != 'нет':
+        if any([i not in '1234567890 ' for i in update.message.text]) or len(update.message.text.split()) > 4:
+            await update.message.reply_text('Некорректное время, введите время ещё раз')
+            return 'get time'
 
-    time = {0: 0, 1: 0, 2: 0, 3: 0}  # время: 0 - сек, 1 - мин, 2 - ч, 3 - дни
-    for ind, el in enumerate(update.message.text.split()[::-1]):
-        time[ind] = int(el)
-    timer.seconds = time[0]
-    timer.minutes = time[1]
-    timer.hours = time[2]
-    timer.days = time[3]
-    db_sess.commit()
+        time = {0: 0, 1: 0, 2: 0, 3: 0}  # время: 0 - сек, 1 - мин, 2 - ч, 3 - дни
+        for ind, el in enumerate(update.message.text.split()[::-1]):
+            time[ind] = int(el)
+        print(time)
+        timer.seconds = time[0]
+        timer.minutes = time[1]
+        timer.hours = time[2]
+        timer.days = time[3]
+        db_sess.commit()
 
-    user_timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
-    markup = ReplyKeyboardMarkup([*MARKUPS['timer'], user_timers], one_time_keyboard=False)
+    timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
+    user_timers = [timers[timer: timer + 4] for timer in range(0, len(timers), 4)]
+    markup = ReplyKeyboardMarkup([*MARKUPS['timers'], *user_timers], one_time_keyboard=False)
 
-    await update.message.reply_text(f'Окей. Теперь таймер {timer.name} установлен на {timer.days} дней {timer.hours} ч '
+    await update.message.reply_text(f'Окей. Теперь таймер {timer.name} установлен на {timer.days} д {timer.hours} ч '
                                     f'{timer.minutes} мин {timer.seconds} сек', reply_markup=markup)
     return ConversationHandler.END
 
 
 async def add_timer(update, context):
-    await update.message.reply_text('Создаем новый таймер. Введите имя нового таймера')
+    await update.message.reply_text('Создаем новый таймер. Введите имя нового таймера',
+                                    reply_markup=ReplyKeyboardMarkup([['/stop']]))
     return 'get name'
 
 
@@ -109,20 +122,26 @@ async def get_add_timer_time(update, context):
     time = {0: 0, 1: 0, 2: 0, 3: 0}  # время: 0 - сек, 1 - мин, 2 - ч, 3 - дни
     for ind, el in enumerate(update.message.text.split()[::-1]):
         time[ind] = int(el)
+
     timer = Timer(name=context.user_data['add timer conv'], seconds=time[0], minutes=time[1], hours=time[2],
                   days=time[3], user_id=update.effective_user.id)
     db_sess.add(timer)
     db_sess.commit()
-    user_timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
-    markup = ReplyKeyboardMarkup([*MARKUPS['timer'], user_timers], one_time_keyboard=False)
-    await update.message.reply_text(f'Создан новый таймер {timer.name}', reply_markup=markup)
+
+    timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
+    user_timers = [timers[timer: timer + 4] for timer in range(0, len(timers), 4)]
+    markup = ReplyKeyboardMarkup([*MARKUPS['timers'], *user_timers], one_time_keyboard=False)
+    await update.message.reply_text(f'Создан новый таймер {timer.name} на {timer.days} д {timer.hours} ч '
+                                        f'{timer.minutes} мин {timer.seconds} сек', reply_markup=markup)
     return ConversationHandler.END
 
 
 async def delete_timer(update, context):
     db_sess = create_session()
-    user_timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
-    markup = ReplyKeyboardMarkup([user_timers], one_time_keyboard=False)
+
+    timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
+    user_timers = [timers[timer: timer + 4] for timer in range(0, len(timers), 4)]
+    markup = ReplyKeyboardMarkup([*user_timers, ['/stop']], one_time_keyboard=False)
     await update.message.reply_text(f'Выберите таймер на клавиатуре, который хотите удалить', reply_markup=markup)
     return 'get name'
 
@@ -138,8 +157,9 @@ async def get_delete_timer_name(update, context):
     db_sess.delete(timer)
     db_sess.commit()
 
-    user_timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
-    markup = ReplyKeyboardMarkup([*MARKUPS['timer'], user_timers], one_time_keyboard=False)
+    timers = [el.name for el in db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id)]
+    user_timers = [timers[timer: timer + 4] for timer in range(0, len(timers), 4)]
+    markup = ReplyKeyboardMarkup([*MARKUPS['timers'], *user_timers], one_time_keyboard=False)
     await update.message.reply_text(f'Таймер {update.message.text} удален', reply_markup=markup)
     return ConversationHandler.END
 

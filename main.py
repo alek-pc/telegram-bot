@@ -24,7 +24,7 @@ async def help(update, context):
 {HELP['base']}
 Доступные разделы:
 {HELP['help']}
-{HELP['timer']}
+{HELP['timers']}
 """)
     else:
         await update.message.reply_text(f'Подъехала помощь!\n{"   ".join([HELP[i] for i in context.args])}')
@@ -47,7 +47,7 @@ async def start(update, context):
 
 
 async def text(update, context):
-    if 'mode' not in list(context.user_data.keys()) or context.user_data['mode'] == 'timer':
+    if 'mode' not in list(context.user_data.keys()) or context.user_data['mode'] == 'timers':
         db_sess = create_session()
         timer = db_sess.query(Timer).filter(Timer.user_id == update.effective_user.id,
                                             Timer.name == update.message.text).first()
@@ -58,17 +58,15 @@ async def text(update, context):
         context.job_queue.run_once(task, timer.seconds + timer.minutes * 60 + timer.hours * 3600 +
                                    timer.days * 3600 * 24, chat_id=chat_id,
                                    name=str(chat_id), data=f'Таймер {timer.name} истек')
-        await update.message.reply_text(f'Таймер {timer.name} поставлен')
+        await update.message.reply_text(f'Таймер {timer.name} на {timer.days} д {timer.hours} ч '
+                                        f'{timer.minutes} мин {timer.seconds} сек поставлен')
 
 
 async def back(update, context):
-    if 'mode' not in list(context.user_data.keys()) or context.user_data['mode'] == 'timer':
+    if 'mode' not in list(context.user_data.keys()) or context.user_data['mode'] == 'timers':
         context.user_data['mode'] = 'base'
         markup = ReplyKeyboardMarkup(MARKUPS['base'], one_time_keyboard=False)
         await update.message.reply_text('Вернулись', reply_markup=markup)
-
-
-
 
 
 def main():
@@ -92,9 +90,9 @@ def main():
         'get time': [MessageHandler(filters.TEXT & ~filters.COMMAND, get_add_timer_time)]
     }, fallbacks=[CommandHandler('stop', stop)]))
     application.add_handler(ConversationHandler(entry_points=[CommandHandler('delete_timer', delete_timer)], states={
-                                                    'get name': [MessageHandler(filters.TEXT & ~filters.COMMAND,
-                                                                                get_delete_timer_name)]
-                                                }, fallbacks=[CommandHandler('stop', stop)]))
+        'get name': [MessageHandler(filters.TEXT & ~filters.COMMAND,
+                                    get_delete_timer_name)]
+    }, fallbacks=[CommandHandler('stop', stop)]))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text))
 
