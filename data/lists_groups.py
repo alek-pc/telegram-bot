@@ -3,7 +3,6 @@ from .db_session import SqlAlchemyBase
 
 
 class User(SqlAlchemyBase):
-    __tablename__ = 'users'
+    __tablename__ = 'lists groups'
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, autoincrement=True)
-    name = sqlalchemy.Column(sqlalchemy.Integer, unique=True)
-    last_visit = sqlalchemy.Column(sqlalchemy.DATETIME)
+    members = sqlalchemy.Column(sqlalchemy.String)

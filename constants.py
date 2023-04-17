@@ -9,10 +9,11 @@ HELP = {'base': """Небольшое объяснение:
                      'при увеличении кол-ва аргументов время переходит вот так: сек -> мин -> часы -> дни сначала {сек}'
                      ', потом {мин сек}, {ч мин сек}',
         'add_timer': '/add_timer <имя> <время (как с timer)> добавляет новый пользовательский таймер в клавиатуру',
-        'delete_timer': '/delete_timer <имя> удаляет пользовательский таймер с указанным именем',
-        'edit_timer': '/edit_timer <имя таймера> <необязательно новое имя> <новое время> - редактировать таймер с '
+        'delete_timer': '/delete_timer удаляет пользовательский таймер с указанным именем',
+        'edit_timer': '/edit_timer - редактировать таймер с '
                       'указанным именем: изменение имени таймера (необязательно) и изменение времени (как с timer)'
         }
-MARKUPS = {'base': [['/help', '/timers']],
-           'timers': [['/help timers', '/set_timer', '/add_timer'], ['/edit_timer', '/delete_timer', '/back']]
+MARKUPS = {'base': [['/help', '/timers'], ['/lists']],
+           'timers': [['/help timers', '/set_timer', '/add_timer'], ['/edit_timer', '/delete_timer', '/back']],
+           'lists': [['/add_member', '/add_point', '/add_list', '/back']]
            }

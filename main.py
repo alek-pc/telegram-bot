@@ -5,7 +5,7 @@ from data.db_session import global_init, create_session
 from data.users import User
 from data.timers import Timer
 from timers import *
-from constants import BOT_TOKEN
+from constants import BOT_TOKEN, MARKUPS
 
 # ссылка на бота в телеграм https://t.me/asdfagsfbot
 
@@ -63,10 +63,20 @@ async def text(update, context):
 
 
 async def back(update, context):
-    if 'mode' not in list(context.user_data.keys()) or context.user_data['mode'] == 'timers':
+    if 'mode' not in list(context.user_data.keys()) or context.user_data['mode'] in 'timers lists':
         context.user_data['mode'] = 'base'
         markup = ReplyKeyboardMarkup(MARKUPS['base'], one_time_keyboard=False)
         await update.message.reply_text('Вернулись', reply_markup=markup)
+
+
+async def lists(update, context):
+    context.user_data['mode'] = 'lists'
+    await update.message.reply_text('Вы попали в раздел списков',
+                                    reply_markup=ReplyKeyboardMarkup(MARKUPS['lists'], one_time_keyboard=False))
+
+
+async def add_member(update, context):
+    await update.message.reply_text('какого пользователя вы хотите добавить? Введите id')
 
 
 def main():
@@ -94,6 +104,9 @@ def main():
                                     get_delete_timer_name)]
     }, fallbacks=[CommandHandler('stop', stop)]))
 
+    application.add_handler(CommandHandler('lists', lists))
+    application.add_handler(ConversationHandler(entry_points=[CommandHandler('add_member', add_member)],
+                                                states={0: []}, fallbacks=[CommandHandler('stop', stop)]))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text))
 
     application.run_polling()
