@@ -6,7 +6,7 @@ from data.lists import List
 from data.db_session import create_session
 from timers import task
 from constants import HELP, MARKUPS
-from main import logger
+from server import logger
 import datetime
 
 
