@@ -39,7 +39,7 @@ MARKUPS = {'base': [['/help', '/timers'], ['/lists', '/gpt']],
            'lists': [['/help lists', '/get_id'], ['/create_list', '/back']],
            'concrete list': [['/help list', '/add_member'], ['/check', '/add_points', '/del_points'],
                              ['/members', '/exit', '/back']],
-           'gpt': [['/help gpt', '/back'], ['/discussion', '/image']]
+           'gpt': [['/help gpt', '/back'], ['/dialog', '/image']]
            }
 # headers для gpt
 GPT_HEADERS = {
