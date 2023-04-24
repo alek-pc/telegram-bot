@@ -17,8 +17,12 @@ async def help(update, context):
 {HELP['base']}
 Доступные разделы:
 {HELP['help']}
+
 {HELP['timers']}
+
 {HELP['lists']}
+
+{HELP['gpt']}
 """)
     else:
         text = "\n".join([HELP[i] for i in context.args])
